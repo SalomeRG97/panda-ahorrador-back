@@ -26,7 +26,22 @@ const shortcutsRoutes = require('./routes/shortcuts.routes');
 const app = express();
 
 // Middlewares globales
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:4200',
+  'https://panda-ahorrador-front.onrender.com',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(requestLogger);
 
