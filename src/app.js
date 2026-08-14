@@ -21,6 +21,7 @@ const expenseRoutes = require('./routes/expense.routes');
 const weekRoutes = require('./routes/week.routes');
 const challengeRoutes = require('./routes/challenge.routes');
 const summaryRoutes = require('./routes/summary.routes');
+const shortcutsRoutes = require('./routes/shortcuts.routes');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/weeks', weekRoutes);
 app.use('/api/challenges', challengeRoutes);
 app.use('/api/summary', summaryRoutes);
+app.use('/api/shortcuts', shortcutsRoutes);
 
 // Handling 404
 app.use((req, res, next) => {
