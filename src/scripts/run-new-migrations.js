@@ -47,6 +47,19 @@ async function runNewMigrations() {
       }
     }
 
+    // 2b. Migración Años Únicos por Usuario (Fix Duplicate Key 'years.year')
+    const sqlYearsPath = path.join(__dirname, '../../database/fix-years-unique.sql');
+    if (fs.existsSync(sqlYearsPath)) {
+      const sqlYears = fs.readFileSync(sqlYearsPath, 'utf8');
+      console.log('📜 Ejecutando fix-years-unique.sql...');
+      try {
+        await connection.query(sqlYears);
+        console.log('✅ Índice de años únicos por usuario verificado/actualizado.');
+      } catch (err) {
+        console.error('⚠️ Detalle migración años por usuario:', err.message);
+      }
+    }
+
     // 3. Recalcular Semanas (Domingo a Sábado)
     console.log('🗓️ Verificando alineación de semanas (Domingo a Sábado)...');
     const { calculateWeeksForMonth } = require('../utils/date-helpers');
