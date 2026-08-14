@@ -44,11 +44,19 @@ class CategoryService {
   }
 
   async deleteCategory(id, userId) {
-    logger.info(`[CategoryService] Eliminando categoría ID: ${id}`);
+    logger.info(`[CategoryService] Eliminando categoría ID: ${id} por usuario: ${userId}`);
 
     const category = await categoryRepository.getById(id);
     if (!category) {
       throw { statusCode: 404, message: 'Categoría no encontrada' };
+    }
+
+    if (category.isGlobal) {
+      throw { statusCode: 403, message: 'No puedes eliminar las categorías predeterminadas del sistema' };
+    }
+
+    if (category.user_id && category.user_id !== userId) {
+      throw { statusCode: 403, message: 'No tienes permiso para eliminar esta categoría' };
     }
 
     await categoryRepository.delete(id);

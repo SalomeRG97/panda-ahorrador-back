@@ -48,16 +48,13 @@ async function runNewMigrations() {
     }
 
     // 2c. Migración Permitir NULL en category_id
-    const sqlCatNullPath = path.join(__dirname, '../../database/fix-categories-null.sql');
-    if (fs.existsSync(sqlCatNullPath)) {
-      const sqlCatNull = fs.readFileSync(sqlCatNullPath, 'utf8');
-      console.log('📜 Ejecutando fix-categories-null.sql...');
-      try {
-        await connection.query(sqlCatNull);
-        console.log('✅ Columnas category_id actualizadas a INT NULL.');
-      } catch (err) {
-        console.error('⚠️ Detalle migración category_id NULL:', err.message);
-      }
+    console.log('📜 Actualizando columnas category_id a INT NULL...');
+    try {
+      await connection.query('ALTER TABLE budget_expenses MODIFY COLUMN category_id INT NULL');
+      await connection.query('ALTER TABLE extra_expenses MODIFY COLUMN category_id INT NULL');
+      console.log('✅ Columnas category_id actualizadas a INT NULL.');
+    } catch (err) {
+      console.error('⚠️ Detalle migración category_id NULL:', err.message);
     }
 
     // 3. Recalcular Semanas (Domingo a Sábado)
