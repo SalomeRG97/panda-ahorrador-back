@@ -6,9 +6,9 @@ const { getMonthName, getDaysInMonth, calculateWeeksForMonth } = require('../uti
 const logger = require('../config/logger');
 
 class YearService {
-  async getAllYears() {
-    logger.info('[YearService] Obteniendo todos los años registrados');
-    return await yearRepository.getAll();
+  async getAllYears(userId) {
+    logger.info(`[YearService] Obteniendo todos los años para usuario ID: ${userId}`);
+    return await yearRepository.getAll(userId);
   }
 
   async getYearById(id) {
@@ -21,15 +21,15 @@ class YearService {
     return { ...yearObj, months };
   }
 
-  async createYear(year, startMonth) {
-    logger.info(`[YearService] Creando nuevo año ${year} iniciando en el mes ${startMonth}`);
+  async createYear(year, startMonth, userId) {
+    logger.info(`[YearService] Creando nuevo año ${year} iniciando en el mes ${startMonth} para usuario ID: ${userId}`);
 
-    const existingYears = await yearRepository.getAll();
+    const existingYears = await yearRepository.getAll(userId);
     if (existingYears.some(y => y.year === parseInt(year))) {
       throw { statusCode: 400, message: `El año ${year} ya ha sido creado previamente` };
     }
 
-    const yearId = await yearRepository.create(year, startMonth, 12);
+    const yearId = await yearRepository.create(year, startMonth, 12, userId);
     const createdMonths = [];
 
     for (let m = parseInt(startMonth); m <= 12; m++) {
@@ -57,9 +57,9 @@ class YearService {
     return { id: yearId, year, start_month: startMonth, end_month: 12, months: createdMonths };
   }
 
-  async deleteYear(id) {
+  async deleteYear(id, userId) {
     logger.info(`[YearService] Eliminando año ID: ${id}`);
-    return await yearRepository.delete(id);
+    return await yearRepository.delete(id, userId);
   }
 }
 

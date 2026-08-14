@@ -15,10 +15,11 @@ class IncomeController {
 
   async create(req, res, next) {
     try {
-      const { monthId, date, concept, amount } = req.body;
+      const monthId = req.body.monthId || req.body.month_id;
+      const { date, concept, amount } = req.body;
       logger.info(`[IncomeController] POST /api/incomes -> Mes: ${monthId}, Concepto: ${concept}`);
       const insertId = await incomeService.createIncome(monthId, date, concept, amount);
-      res.status(201).json({ success: true, data: { id: insertId, monthId, date, concept, amount } });
+      res.status(201).json({ success: true, data: { id: insertId, month_id: monthId, monthId, date, concept, amount } });
     } catch (error) {
       next(error);
     }

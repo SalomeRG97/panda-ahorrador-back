@@ -22,7 +22,7 @@ class SummaryRepository {
 
       // Ahorro
       const [[sav]] = await db.query(
-        'SELECT COALESCE(amount, 0) as total FROM savings WHERE month_id = ?',
+        'SELECT COALESCE(SUM(amount), 0) as total FROM savings WHERE month_id = ?',
         [m.id]
       );
 
@@ -38,12 +38,12 @@ class SummaryRepository {
         [m.id]
       );
 
-      const totalIncome = parseFloat(inc.total);
-      const totalSaving = parseFloat(sav.total);
-      const totalFixedBudget = parseFloat(budExp.budget_total);
-      const totalRealBudget = parseFloat(budExp.real_total);
-      const totalExtra = parseFloat(extExp.total);
-      const totalExpenses = totalRealBudget + totalExtra;
+      const totalIncome = parseFloat(inc?.total || 0);
+      const totalSaving = parseFloat(sav?.total || 0);
+      const totalFixedBudget = parseFloat(budExp?.budget_total || 0);
+      const totalRealBudget = parseFloat(budExp?.real_total || 0);
+      const totalExtra = parseFloat(extExp?.total || 0);
+      const totalExpenses = (totalRealBudget > 0 ? totalRealBudget : totalFixedBudget) + totalExtra;
       const remaining = totalIncome - totalExpenses - totalSaving;
 
       summaryByMonth.push({
@@ -72,7 +72,7 @@ class SummaryRepository {
         c.name as category_name,
         c.color as category_color,
         (
-          COALESCE((SELECT SUM(be.real_amount) FROM budget_expenses be WHERE be.month_id = m.id AND be.category_id = c.id), 0) +
+          COALESCE((SELECT SUM(IF(be.real_amount > 0, be.real_amount, be.budget_amount)) FROM budget_expenses be WHERE be.month_id = m.id AND be.category_id = c.id), 0) +
           COALESCE((SELECT SUM(ee.amount) FROM extra_expenses ee WHERE ee.month_id = m.id AND ee.category_id = c.id), 0)
         ) as total_spent
        FROM months m
@@ -107,7 +107,7 @@ class SummaryRepository {
 
       for (const w of weeks) {
         const [[bud]] = await db.query(
-          'SELECT COALESCE(SUM(real_amount), 0) as total FROM budget_expenses WHERE month_id = ? AND week_id = ? AND category_id = ?',
+          'SELECT COALESCE(SUM(IF(real_amount > 0, real_amount, budget_amount)), 0) as total FROM budget_expenses WHERE month_id = ? AND week_id = ? AND category_id = ?',
           [monthId, w.id, cat.id]
         );
         const [[ext]] = await db.query(
@@ -115,7 +115,7 @@ class SummaryRepository {
           [monthId, w.id, cat.id]
         );
 
-        const weekTotal = parseFloat(bud.total) + parseFloat(ext.total);
+        const weekTotal = parseFloat(bud?.total || 0) + parseFloat(ext?.total || 0);
         categoryMonthTotal += weekTotal;
 
         catWeekly.weeks.push({

@@ -2,9 +2,9 @@ const db = require('../config/database');
 const logger = require('../config/logger');
 
 class YearRepository {
-  async getAll() {
-    logger.debug('[YearRepository] Obteniendo lista de años');
-    const [rows] = await db.query('SELECT * FROM years ORDER BY year DESC');
+  async getAll(userId) {
+    logger.debug(`[YearRepository] Obteniendo lista de años para usuario ID: ${userId}`);
+    const [rows] = await db.query('SELECT * FROM years WHERE user_id = ? ORDER BY year DESC', [userId]);
     return rows;
   }
 
@@ -14,18 +14,18 @@ class YearRepository {
     return rows[0] || null;
   }
 
-  async create(year, startMonth, endMonth = 12) {
-    logger.info(`[YearRepository] Insertando nuevo año: ${year} (Mes ${startMonth} a ${endMonth})`);
+  async create(year, startMonth, endMonth = 12, userId) {
+    logger.info(`[YearRepository] Insertando nuevo año: ${year} (Mes ${startMonth} a ${endMonth}) para usuario ID: ${userId}`);
     const [result] = await db.query(
-      'INSERT INTO years (year, start_month, end_month) VALUES (?, ?, ?)',
-      [year, startMonth, endMonth]
+      'INSERT INTO years (year, start_month, end_month, user_id) VALUES (?, ?, ?, ?)',
+      [year, startMonth, endMonth, userId]
     );
     return result.insertId;
   }
 
-  async delete(id) {
-    logger.info(`[YearRepository] Eliminando año ID: ${id}`);
-    await db.query('DELETE FROM years WHERE id = ?', [id]);
+  async delete(id, userId) {
+    logger.info(`[YearRepository] Eliminando año ID: ${id} del usuario ID: ${userId}`);
+    await db.query('DELETE FROM years WHERE id = ? AND user_id = ?', [id, userId]);
     return true;
   }
 }

@@ -19,29 +19,32 @@ class ExpenseService {
   }
 
   async createBudgetExpense(expenseData) {
-    const { month_id, category_id, date, concept, budget_amount } = expenseData;
+    let { month_id, category_id, date, concept, budget_amount } = expenseData;
     if (!month_id || !category_id || !date || !concept || budget_amount == null) {
       throw { statusCode: 400, message: 'Faltan campos obligatorios para el gasto presupuestado' };
     }
 
-    let week_id = expenseData.week_id;
-    if (!week_id) {
-      week_id = await this._findWeekIdForDate(month_id, date);
+    if (date) {
+      const matchedWeek = await weekRepository.findWeekByDate(date, month_id);
+      if (matchedWeek) {
+        expenseData.week_id = matchedWeek.id;
+        expenseData.month_id = matchedWeek.month_id;
+      }
     }
 
-    return await expenseRepository.createBudgetExpense({
-      ...expenseData,
-      week_id
-    });
+    return await expenseRepository.createBudgetExpense(expenseData);
   }
 
   async updateBudgetExpense(id, expenseData) {
-    const { month_id, date } = expenseData;
-    let week_id = expenseData.week_id;
-    if (!week_id && month_id && date) {
-      week_id = await this._findWeekIdForDate(month_id, date);
+    const { date, month_id } = expenseData;
+    if (date) {
+      const matchedWeek = await weekRepository.findWeekByDate(date, month_id);
+      if (matchedWeek) {
+        expenseData.week_id = matchedWeek.id;
+        expenseData.month_id = matchedWeek.month_id;
+      }
     }
-    return await expenseRepository.updateBudgetExpense(id, { ...expenseData, week_id });
+    return await expenseRepository.updateBudgetExpense(id, expenseData);
   }
 
   async deleteBudgetExpense(id) {
@@ -49,29 +52,32 @@ class ExpenseService {
   }
 
   async createExtraExpense(expenseData) {
-    const { month_id, category_id, date, concept, amount } = expenseData;
+    let { month_id, category_id, date, concept, amount } = expenseData;
     if (!month_id || !category_id || !date || !concept || amount == null) {
       throw { statusCode: 400, message: 'Faltan campos obligatorios para el gasto extra' };
     }
 
-    let week_id = expenseData.week_id;
-    if (!week_id) {
-      week_id = await this._findWeekIdForDate(month_id, date);
+    if (date) {
+      const matchedWeek = await weekRepository.findWeekByDate(date, month_id);
+      if (matchedWeek) {
+        expenseData.week_id = matchedWeek.id;
+        expenseData.month_id = matchedWeek.month_id;
+      }
     }
 
-    return await expenseRepository.createExtraExpense({
-      ...expenseData,
-      week_id
-    });
+    return await expenseRepository.createExtraExpense(expenseData);
   }
 
   async updateExtraExpense(id, expenseData) {
-    const { month_id, date } = expenseData;
-    let week_id = expenseData.week_id;
-    if (!week_id && month_id && date) {
-      week_id = await this._findWeekIdForDate(month_id, date);
+    const { date, month_id } = expenseData;
+    if (date) {
+      const matchedWeek = await weekRepository.findWeekByDate(date, month_id);
+      if (matchedWeek) {
+        expenseData.week_id = matchedWeek.id;
+        expenseData.month_id = matchedWeek.month_id;
+      }
     }
-    return await expenseRepository.updateExtraExpense(id, { ...expenseData, week_id });
+    return await expenseRepository.updateExtraExpense(id, expenseData);
   }
 
   async deleteExtraExpense(id) {
@@ -79,19 +85,8 @@ class ExpenseService {
   }
 
   async _findWeekIdForDate(monthId, dateStr) {
-    const weeks = await weekRepository.getByMonthId(monthId);
-    const targetDate = new Date(dateStr);
-
-    for (const w of weeks) {
-      const start = new Date(w.start_date);
-      const end = new Date(w.end_date);
-      end.setHours(23, 59, 59);
-
-      if (targetDate >= start && targetDate <= end) {
-        return w.id;
-      }
-    }
-    return weeks[0] ? weeks[0].id : null;
+    const matchedWeek = await weekRepository.findWeekByDate(dateStr, monthId);
+    return matchedWeek ? matchedWeek.id : null;
   }
 }
 

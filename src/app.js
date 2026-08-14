@@ -1,11 +1,18 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const config = require('./config/environment');
 const logger = require('./config/logger');
 const requestLogger = require('./middlewares/request-logger.middleware');
 const errorHandler = require('./middlewares/error-handler.middleware');
 
-// Rutas por módulo
+// Rutas de autenticación
+const authRoutes = require('./routes/auth.routes');
+const adminRoutes = require('./routes/admin.routes');
+const shareRoutes = require('./routes/share.routes');
+const profileRoutes = require('./routes/profile.routes');
+
+// Rutas por módulo (protegidas)
 const categoryRoutes = require('./routes/category.routes');
 const yearRoutes = require('./routes/year.routes');
 const monthRoutes = require('./routes/month.routes');
@@ -22,6 +29,9 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
+// Servir archivos estáticos (avatares)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Ruta de comprobación de estado (Health Check)
 app.get('/api/health', (req, res) => {
   res.json({
@@ -31,7 +41,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Registro de endpoints de API
+// Rutas de autenticación (públicas y protegidas)
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/share', shareRoutes);
+app.use('/api/profile', profileRoutes);
+
+// Registro de endpoints de API (protegidos)
 app.use('/api/categories', categoryRoutes);
 app.use('/api/years', yearRoutes);
 app.use('/api/months', monthRoutes);
@@ -54,6 +70,7 @@ app.listen(config.port, () => {
   logger.info(`===========================================================`);
   logger.info(`🌸 熊猫理财 El panda ahorrador - Backend API corriendo en http://localhost:${config.port}`);
   logger.info(`🗄️ Base de datos: MySQL CleverCloud (${config.db.database})`);
+  logger.info(`🔐 Autenticación: JWT habilitado`);
   logger.info(`===========================================================`);
 });
 

@@ -25,6 +25,22 @@ class WeekRepository {
     );
     return result.insertId;
   }
+
+  async findWeekByDate(dateStr, monthId) {
+    logger.debug(`[WeekRepository] Buscando semana para la fecha: ${dateStr} (mes ID: ${monthId})`);
+    if (monthId) {
+      const [rows] = await db.query(
+        'SELECT * FROM weeks WHERE month_id = ? AND start_date <= ? AND end_date >= ?',
+        [monthId, dateStr, dateStr]
+      );
+      if (rows.length > 0) return rows[0];
+    }
+    const [rows] = await db.query(
+      'SELECT * FROM weeks WHERE start_date <= ? AND end_date >= ? ORDER BY id ASC LIMIT 1',
+      [dateStr, dateStr]
+    );
+    return rows[0] || null;
+  }
 }
 
 module.exports = new WeekRepository();
