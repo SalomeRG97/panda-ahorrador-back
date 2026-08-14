@@ -41,11 +41,43 @@ class WeekService {
       };
     });
 
+    // Calcular totales por medio de pago
+    const paymentMap = new Map();
+
+    const addExpenseToMap = (pmRaw, budgetAmt, realAmt, extraAmt) => {
+      const pm = (pmRaw && pmRaw.trim()) ? pmRaw.trim() : 'Sin especificar';
+      if (!paymentMap.has(pm)) {
+        paymentMap.set(pm, {
+          paymentMethod: pm,
+          totalBudget: 0,
+          totalRealBudget: 0,
+          totalExtra: 0,
+          totalSpent: 0
+        });
+      }
+      const item = paymentMap.get(pm);
+      item.totalBudget += budgetAmt;
+      item.totalRealBudget += realAmt;
+      item.totalExtra += extraAmt;
+      item.totalSpent += (realAmt + extraAmt);
+    };
+
+    budgetExpenses.forEach(e => {
+      addExpenseToMap(e.payment_method, parseFloat(e.budget_amount || 0), parseFloat(e.real_amount || 0), 0);
+    });
+
+    extraExpenses.forEach(e => {
+      addExpenseToMap(e.payment_method, 0, 0, parseFloat(e.amount || 0));
+    });
+
+    const paymentMethodTotals = Array.from(paymentMap.values());
+
     return {
       week,
       budgetExpenses,
       extraExpenses,
-      categoryTotals
+      categoryTotals,
+      paymentMethodTotals
     };
   }
 }
