@@ -14,10 +14,19 @@ class IncomeService {
   }
 
   async updateIncome(id, date, concept, amount) {
+    if (!id || isNaN(id)) {
+      throw { statusCode: 400, message: 'ID de ingreso no válido' };
+    }
+    if (!date || !concept || amount == null) {
+      throw { statusCode: 400, message: 'Todos los campos de ingreso son requeridos' };
+    }
     return await incomeRepository.update(id, date, concept, amount);
   }
 
   async deleteIncome(id) {
+    if (!id || isNaN(id)) {
+      throw { statusCode: 400, message: 'ID de ingreso no válido' };
+    }
     return await incomeRepository.delete(id);
   }
 

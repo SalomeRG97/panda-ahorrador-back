@@ -47,16 +47,16 @@ async function runNewMigrations() {
       }
     }
 
-    // 2b. Migración Años Únicos por Usuario (Fix Duplicate Key 'years.year')
-    const sqlYearsPath = path.join(__dirname, '../../database/fix-years-unique.sql');
-    if (fs.existsSync(sqlYearsPath)) {
-      const sqlYears = fs.readFileSync(sqlYearsPath, 'utf8');
-      console.log('📜 Ejecutando fix-years-unique.sql...');
+    // 2c. Migración Permitir NULL en category_id
+    const sqlCatNullPath = path.join(__dirname, '../../database/fix-categories-null.sql');
+    if (fs.existsSync(sqlCatNullPath)) {
+      const sqlCatNull = fs.readFileSync(sqlCatNullPath, 'utf8');
+      console.log('📜 Ejecutando fix-categories-null.sql...');
       try {
-        await connection.query(sqlYears);
-        console.log('✅ Índice de años únicos por usuario verificado/actualizado.');
+        await connection.query(sqlCatNull);
+        console.log('✅ Columnas category_id actualizadas a INT NULL.');
       } catch (err) {
-        console.error('⚠️ Detalle migración años por usuario:', err.message);
+        console.error('⚠️ Detalle migración category_id NULL:', err.message);
       }
     }
 

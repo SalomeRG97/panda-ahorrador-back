@@ -6,9 +6,12 @@ class ExpenseRepository {
   async getBudgetExpensesByMonth(monthId) {
     logger.debug(`[ExpenseRepository] Buscando gastos presupuestados del mes ID ${monthId}`);
     const [rows] = await db.query(
-      `SELECT be.*, c.name as category_name, c.color as category_color, c.icon as category_icon 
+      `SELECT be.*, 
+              COALESCE(c.name, 'Sin Categorizar') as category_name, 
+              COALESCE(c.color, '#FFFFFF') as category_color, 
+              COALESCE(c.icon, '🏷️') as category_icon 
        FROM budget_expenses be 
-       JOIN categories c ON be.category_id = c.id 
+       LEFT JOIN categories c ON be.category_id = c.id 
        WHERE be.month_id = ? 
        ORDER BY be.date ASC`,
       [monthId]
@@ -19,9 +22,12 @@ class ExpenseRepository {
   async getBudgetExpensesByWeek(weekId) {
     logger.debug(`[ExpenseRepository] Buscando gastos presupuestados de la semana ID ${weekId}`);
     const [rows] = await db.query(
-      `SELECT be.*, c.name as category_name, c.color as category_color, c.icon as category_icon 
+      `SELECT be.*, 
+              COALESCE(c.name, 'Sin Categorizar') as category_name, 
+              COALESCE(c.color, '#FFFFFF') as category_color, 
+              COALESCE(c.icon, '🏷️') as category_icon 
        FROM budget_expenses be 
-       JOIN categories c ON be.category_id = c.id 
+       LEFT JOIN categories c ON be.category_id = c.id 
        WHERE be.week_id = ? 
        ORDER BY be.date ASC`,
       [weekId]
@@ -60,9 +66,12 @@ class ExpenseRepository {
   async getExtraExpensesByMonth(monthId) {
     logger.debug(`[ExpenseRepository] Buscando gastos extra del mes ID ${monthId}`);
     const [rows] = await db.query(
-      `SELECT ee.*, c.name as category_name, c.color as category_color, c.icon as category_icon 
+      `SELECT ee.*, 
+              COALESCE(c.name, 'Sin Categorizar') as category_name, 
+              COALESCE(c.color, '#FFFFFF') as category_color, 
+              COALESCE(c.icon, '🏷️') as category_icon 
        FROM extra_expenses ee 
-       JOIN categories c ON ee.category_id = c.id 
+       LEFT JOIN categories c ON ee.category_id = c.id 
        WHERE ee.month_id = ? 
        ORDER BY ee.date ASC`,
       [monthId]
@@ -73,9 +82,12 @@ class ExpenseRepository {
   async getExtraExpensesByWeek(weekId) {
     logger.debug(`[ExpenseRepository] Buscando gastos extra de la semana ID ${weekId}`);
     const [rows] = await db.query(
-      `SELECT ee.*, c.name as category_name, c.color as category_color, c.icon as category_icon 
+      `SELECT ee.*, 
+              COALESCE(c.name, 'Sin Categorizar') as category_name, 
+              COALESCE(c.color, '#FFFFFF') as category_color, 
+              COALESCE(c.icon, '🏷️') as category_icon 
        FROM extra_expenses ee 
-       JOIN categories c ON ee.category_id = c.id 
+       LEFT JOIN categories c ON ee.category_id = c.id 
        WHERE ee.week_id = ? 
        ORDER BY ee.date ASC`,
       [weekId]

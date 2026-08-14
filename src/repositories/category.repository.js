@@ -51,6 +51,8 @@ class CategoryRepository {
 
   async delete(id) {
     logger.info(`[CategoryRepository] Eliminando categoría ID: ${id}`);
+    await db.query('UPDATE budget_expenses SET category_id = NULL WHERE category_id = ?', [id]);
+    await db.query('UPDATE extra_expenses SET category_id = NULL WHERE category_id = ?', [id]);
     await db.query('DELETE FROM categories WHERE id = ?', [id]);
     return true;
   }

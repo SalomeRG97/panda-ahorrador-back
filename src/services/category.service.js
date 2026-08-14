@@ -39,18 +39,6 @@ class CategoryService {
       throw { statusCode: 404, message: 'Categoría no encontrada' };
     }
 
-    // If it's a global category, create a personal copy (Copy-on-Write)
-    if (category.isGlobal) {
-      logger.info(`[CategoryService] Copy-on-Write: copiando categoría global ${id} para usuario ${userId}`);
-      const newId = await categoryRepository.copyGlobalForUser(id, userId, data);
-      return await categoryRepository.getById(newId);
-    }
-
-    // Only the owner can edit their own categories
-    if (category.user_id !== userId) {
-      throw { statusCode: 403, message: 'No tienes permiso para editar esta categoría' };
-    }
-
     await categoryRepository.update(id, data);
     return await categoryRepository.getById(id);
   }
@@ -61,14 +49,6 @@ class CategoryService {
     const category = await categoryRepository.getById(id);
     if (!category) {
       throw { statusCode: 404, message: 'Categoría no encontrada' };
-    }
-
-    if (category.isGlobal) {
-      throw { statusCode: 403, message: 'No se pueden eliminar las categorías predeterminadas del sistema' };
-    }
-
-    if (category.user_id !== userId) {
-      throw { statusCode: 403, message: 'No tienes permiso para eliminar esta categoría' };
     }
 
     await categoryRepository.delete(id);

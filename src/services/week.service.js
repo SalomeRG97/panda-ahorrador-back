@@ -41,6 +41,29 @@ class WeekService {
       };
     });
 
+    // Agregar total para gastos sin categoría (category_id NULL o eliminada)
+    const validCatIds = new Set(categories.map(c => c.id));
+    const uncatBudget = budgetExpenses.filter(e => !e.category_id || !validCatIds.has(e.category_id));
+    const uncatExtra = extraExpenses.filter(e => !e.category_id || !validCatIds.has(e.category_id));
+
+    if (uncatBudget.length > 0 || uncatExtra.length > 0) {
+      const totalBudget = uncatBudget.reduce((sum, e) => sum + parseFloat(e.budget_amount || 0), 0);
+      const totalRealBudget = uncatBudget.reduce((sum, e) => sum + parseFloat(e.real_amount || 0), 0);
+      const totalExtra = uncatExtra.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+      const totalSpent = totalRealBudget + totalExtra;
+
+      categoryTotals.push({
+        categoryId: 0,
+        categoryName: 'Sin Categorizar',
+        categoryColor: '#FFFFFF',
+        categoryIcon: '🏷️',
+        totalBudget,
+        totalRealBudget,
+        totalExtra,
+        totalSpent
+      });
+    }
+
     // Calcular totales por medio de pago
     const paymentMap = new Map();
 
