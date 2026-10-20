@@ -14,6 +14,7 @@ const profileRoutes = require('./routes/profile.routes');
 
 // Rutas por módulo (protegidas)
 const categoryRoutes = require('./routes/category.routes');
+const paymentMethodRoutes = require('./routes/payment-method.routes');
 const yearRoutes = require('./routes/year.routes');
 const monthRoutes = require('./routes/month.routes');
 const incomeRoutes = require('./routes/income.routes');
@@ -65,6 +66,7 @@ app.use('/api/profile', profileRoutes);
 
 // Registro de endpoints de API (protegidos)
 app.use('/api/categories', categoryRoutes);
+app.use('/api/payment-methods', paymentMethodRoutes);
 app.use('/api/years', yearRoutes);
 app.use('/api/months', monthRoutes);
 app.use('/api/incomes', incomeRoutes);
