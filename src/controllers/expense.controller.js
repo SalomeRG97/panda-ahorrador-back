@@ -36,8 +36,10 @@ class ExpenseController {
   async updateBudget(req, res, next) {
     try {
       const { id } = req.params;
-      logger.info(`[ExpenseController] PUT /api/expenses/budget/${id}`);
-      await expenseService.updateBudgetExpense(id, req.body);
+      const userId = req.effectiveUserId || req.user.id;
+      const scope = req.body.scope || 'single';
+      logger.info(`[ExpenseController] PUT /api/expenses/budget/${id} (scope: ${scope})`);
+      await recurrenceService.updateBudgetWithScope(userId, parseInt(id, 10), req.body, scope);
       res.json({ success: true, message: 'Gasto presupuestado actualizado' });
     } catch (error) {
       next(error);
@@ -47,8 +49,10 @@ class ExpenseController {
   async deleteBudget(req, res, next) {
     try {
       const { id } = req.params;
-      logger.info(`[ExpenseController] DELETE /api/expenses/budget/${id}`);
-      await expenseService.deleteBudgetExpense(id);
+      const userId = req.effectiveUserId || req.user.id;
+      const scope = req.query.scope || req.body?.scope || 'single';
+      logger.info(`[ExpenseController] DELETE /api/expenses/budget/${id} (scope: ${scope})`);
+      await recurrenceService.deleteBudgetWithScope(userId, parseInt(id, 10), scope);
       res.json({ success: true, message: 'Gasto presupuestado eliminado' });
     } catch (error) {
       next(error);

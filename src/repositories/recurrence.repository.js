@@ -111,6 +111,37 @@ class RecurrenceRepository {
     await db.query('DELETE FROM budget_expenses WHERE recurrence_id = ? AND date >= ?', [recurrenceId, fromDate]);
   }
 
+  async deleteAllOccurrences(recurrenceId) {
+    await db.query('DELETE FROM budget_expenses WHERE recurrence_id = ?', [recurrenceId]);
+  }
+
+  async updateAllOccurrences(recurrenceId, { category_id, concept, budget_amount, payment_method }) {
+    await db.query(
+      `UPDATE budget_expenses 
+       SET category_id = ?, concept = ?, budget_amount = ?, payment_method = ?
+       WHERE recurrence_id = ?`,
+      [category_id, concept, budget_amount, payment_method || '', recurrenceId]
+    );
+  }
+
+  async updateOccurrencesFrom(oldRecurrenceId, fromDate, newRecurrenceId, { category_id, concept, budget_amount, payment_method }) {
+    await db.query(
+      `UPDATE budget_expenses 
+       SET recurrence_id = ?, category_id = ?, concept = ?, budget_amount = ?, payment_method = ?
+       WHERE recurrence_id = ? AND date >= ?`,
+      [newRecurrenceId, category_id, concept, budget_amount, payment_method || '', oldRecurrenceId, fromDate]
+    );
+  }
+
+  async updateRule(id, { category_id, concept, budget_amount, payment_method }) {
+    await db.query(
+      `UPDATE expense_recurrences
+       SET category_id = ?, concept = ?, budget_amount = ?, payment_method = ?
+       WHERE id = ?`,
+      [category_id, concept, budget_amount, payment_method || '', id]
+    );
+  }
+
   async setEndDate(id, endDate) {
     await db.query('UPDATE expense_recurrences SET end_date = ? WHERE id = ?', [endDate, id]);
   }

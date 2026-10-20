@@ -63,6 +63,22 @@ class ExpenseRepository {
     return true;
   }
 
+  async getBudgetExpenseById(id) {
+    await recurrenceRepository.ready;
+    const [rows] = await db.query(
+      `SELECT be.*, 
+              r.user_id as recurrence_user_id,
+              r.frequency as recurrence_frequency, 
+              r.start_date as recurrence_start_date, 
+              r.end_date as recurrence_end_date
+       FROM budget_expenses be
+       LEFT JOIN expense_recurrences r ON be.recurrence_id = r.id
+       WHERE be.id = ?`,
+      [id]
+    );
+    return rows[0] || null;
+  }
+
   async deleteBudgetExpense(id) {
     logger.info(`[ExpenseRepository] Eliminando gasto presupuestado ID ${id}`);
     await db.query('DELETE FROM budget_expenses WHERE id = ?', [id]);

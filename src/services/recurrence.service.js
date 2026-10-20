@@ -1,4 +1,6 @@
 const repo = require('../repositories/recurrence.repository');
+const expenseRepository = require('../repositories/expense.repository');
+const expenseService = require('./expense.service');
 const logger = require('../config/logger');
 
 const FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'];
@@ -124,11 +126,47 @@ class RecurrenceService {
   }
 
   async deleteSeriesFromExpense(userId, expenseId) {
-    const exp = await repo.getExpenseRecurrence(expenseId);
-    if (!exp || !exp.recurrence_id) {
-      throw { statusCode: 404, message: 'Este gasto no pertenece a una serie recurrente' };
+    return await this.deleteBudgetWithScope(userId, expenseId, 'future');
+  }
+
+  /**
+   * Elimina un gasto presupuestado respetando el alcance elegido:
+   * - 'single': Borra solo este gasto puntual.
+   * - 'future': Borra este gasto y las ocurrencias futuras (conservando las pasadas).
+   * - 'all': Borra toda la serie (todas las ocurrencias pasadas y futuras) y la regla recurrente.
+   */
+  async deleteBudgetWithScope(userId, expenseId, scope = 'single') {
+    const exp = await expenseRepository.getBudgetExpenseById(expenseId);
+    if (!exp) {
+      throw { statusCode: 404, message: 'Gasto presupuestado no encontrado' };
     }
-    return await this.deleteSeriesFrom(userId, exp.recurrence_id, exp.date);
+
+    if (!exp.recurrence_id || scope === 'single') {
+      logger.info(`[RecurrenceService] Eliminando gasto individual ID ${expenseId}`);
+      await expenseRepository.deleteBudgetExpense(expenseId);
+      return true;
+    }
+
+    if (scope === 'all') {
+      logger.info(`[RecurrenceService] Eliminando toda la serie recurrente ID ${exp.recurrence_id}`);
+      const rule = await repo.getById(exp.recurrence_id);
+      if (rule && rule.user_id === userId) {
+        await repo.deleteAllOccurrences(exp.recurrence_id);
+        await repo.delete(exp.recurrence_id);
+      } else {
+        await expenseRepository.deleteBudgetExpense(expenseId);
+      }
+      return true;
+    }
+
+    if (scope === 'future') {
+      logger.info(`[RecurrenceService] Eliminando ocurrencias futuras de serie ID ${exp.recurrence_id} desde ${exp.date}`);
+      return await this.deleteSeriesFrom(userId, exp.recurrence_id, exp.date);
+    }
+
+    // Fallback por defecto
+    await expenseRepository.deleteBudgetExpense(expenseId);
+    return true;
   }
 
   /** Elimina esta ocurrencia y las siguientes; las anteriores se conservan. */
@@ -147,6 +185,80 @@ class RecurrenceService {
       await repo.setEndDate(recurrenceId, toStr(prev));
     }
     return true;
+  }
+
+  /**
+   * Actualiza un gasto presupuestado respetando el alcance elegido:
+   * - 'single': Actualiza solo este gasto puntual.
+   * - 'future': Actualiza este y los gastos futuros (conservando montos reales individuales).
+   * - 'all': Actualiza todas las ocurrencias de la serie (conservando montos reales individuales).
+   */
+  async updateBudgetWithScope(userId, expenseId, data, scope = 'single') {
+    const exp = await expenseRepository.getBudgetExpenseById(expenseId);
+    if (!exp) {
+      throw { statusCode: 404, message: 'Gasto presupuestado no encontrado' };
+    }
+
+    if (!exp.recurrence_id || scope === 'single') {
+      logger.info(`[RecurrenceService] Actualizando gasto individual ID ${expenseId}`);
+      return await expenseService.updateBudgetExpense(expenseId, data);
+    }
+
+    const rule = await repo.getById(exp.recurrence_id);
+    if (!rule || rule.user_id !== userId) {
+      // Si no pertenece al usuario o la regla fue borrada, actualiza solo este gasto
+      return await expenseService.updateBudgetExpense(expenseId, data);
+    }
+
+    const updatePayload = {
+      category_id: data.category_id || rule.category_id,
+      concept: data.concept || rule.concept,
+      budget_amount: data.budget_amount !== undefined ? data.budget_amount : rule.budget_amount,
+      payment_method: data.payment_method !== undefined ? data.payment_method : rule.payment_method,
+    };
+
+    if (scope === 'all') {
+      logger.info(`[RecurrenceService] Actualizando toda la serie recurrente ID ${rule.id}`);
+      await repo.updateRule(rule.id, updatePayload);
+      await repo.updateAllOccurrences(rule.id, updatePayload);
+      // El registro actual se actualiza también por si cambió de fecha o de valor real específico
+      await expenseService.updateBudgetExpense(expenseId, data);
+      return true;
+    }
+
+    if (scope === 'future') {
+      const fromDate = String(exp.date).slice(0, 10);
+      const ruleStartDate = String(rule.start_date).slice(0, 10);
+      logger.info(`[RecurrenceService] Actualizando serie ID ${rule.id} desde fecha ${fromDate}`);
+
+      if (fromDate <= ruleStartDate) {
+        // Toda la serie ocurre a partir de esta fecha, actualizar regla completa y ocurrencias futuras
+        await repo.updateRule(rule.id, updatePayload);
+        await repo.updateOccurrencesFrom(rule.id, fromDate, rule.id, updatePayload);
+      } else {
+        // Hay ocurrencias pasadas: dividir regla (la anterior termina ayer, la nueva inicia hoy)
+        const prev = parse(fromDate);
+        prev.setUTCDate(prev.getUTCDate() - 1);
+        await repo.setEndDate(rule.id, toStr(prev));
+
+        const newRuleId = await repo.create(userId, {
+          category_id: updatePayload.category_id,
+          concept: updatePayload.concept,
+          budget_amount: updatePayload.budget_amount,
+          payment_method: updatePayload.payment_method,
+          frequency: rule.frequency,
+          start_date: fromDate,
+          end_date: rule.end_date,
+        });
+
+        await repo.updateOccurrencesFrom(rule.id, fromDate, newRuleId, updatePayload);
+      }
+      // Actualizar el gasto específico
+      await expenseService.updateBudgetExpense(expenseId, data);
+      return true;
+    }
+
+    return await expenseService.updateBudgetExpense(expenseId, data);
   }
 }
 
