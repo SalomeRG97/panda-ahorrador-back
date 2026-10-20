@@ -38,13 +38,22 @@ class SummaryRepository {
         [m.id]
       );
 
+      // Gastos pagados con ahorros (retiros)
+      const [[wd]] = await db.query(
+        `SELECT
+          (SELECT COALESCE(SUM(real_amount), 0) FROM budget_expenses WHERE month_id = ? AND LOWER(TRIM(payment_method)) = 'ahorros') +
+          (SELECT COALESCE(SUM(amount), 0) FROM extra_expenses WHERE month_id = ? AND LOWER(TRIM(payment_method)) = 'ahorros') AS total`,
+        [m.id, m.id]
+      );
+      const savingsWithdrawn = parseFloat(wd?.total || 0);
+
       const totalIncome = parseFloat(inc?.total || 0);
       const totalSaving = parseFloat(sav?.total || 0);
       const totalFixedBudget = parseFloat(budExp?.budget_total || 0);
       const totalRealBudget = parseFloat(budExp?.real_total || 0);
       const totalExtra = parseFloat(extExp?.total || 0);
       const totalExpenses = totalRealBudget + totalExtra;
-      const remaining = totalIncome - totalExpenses - totalSaving;
+      const remaining = totalIncome - (totalExpenses - savingsWithdrawn) - totalSaving;
 
       summaryByMonth.push({
         monthId: m.id,
@@ -53,6 +62,7 @@ class SummaryRepository {
         income: totalIncome,
         expenses: totalExpenses,
         savings: totalSaving,
+        savingsWithdrawn,
         fixed: totalFixedBudget,
         remaining
       });
