@@ -41,8 +41,8 @@ class SummaryRepository {
       // Gastos pagados con ahorros (retiros)
       const [[wd]] = await db.query(
         `SELECT
-          (SELECT COALESCE(SUM(real_amount), 0) FROM budget_expenses WHERE month_id = ? AND LOWER(TRIM(payment_method)) = 'ahorros') +
-          (SELECT COALESCE(SUM(amount), 0) FROM extra_expenses WHERE month_id = ? AND LOWER(TRIM(payment_method)) = 'ahorros') AS total`,
+          (SELECT COALESCE(SUM(real_amount), 0) FROM budget_expenses WHERE month_id = ? AND LOWER(TRIM(payment_method)) = 'retiro de ahorros') +
+          (SELECT COALESCE(SUM(amount), 0) FROM extra_expenses WHERE month_id = ? AND LOWER(TRIM(payment_method)) = 'retiro de ahorros') AS total`,
         [m.id, m.id]
       );
       const savingsWithdrawn = parseFloat(wd?.total || 0);
