@@ -1,17 +1,21 @@
 const db = require('../config/database');
 const logger = require('../config/logger');
+const recurrenceRepository = require('./recurrence.repository');
 
 class ExpenseRepository {
   // --- GASTOS PRESUPUESTADOS ---
   async getBudgetExpensesByMonth(monthId) {
     logger.debug(`[ExpenseRepository] Buscando gastos presupuestados del mes ID ${monthId}`);
+    await recurrenceRepository.ready;
     const [rows] = await db.query(
       `SELECT be.*, 
+              r.frequency as recurrence_frequency, 
               COALESCE(c.name, 'Sin Categorizar') as category_name, 
               COALESCE(c.color, '#FFFFFF') as category_color, 
               COALESCE(c.icon, '🏷️') as category_icon 
        FROM budget_expenses be 
        LEFT JOIN categories c ON be.category_id = c.id 
+       LEFT JOIN expense_recurrences r ON be.recurrence_id = r.id 
        WHERE be.month_id = ? 
        ORDER BY be.date ASC`,
       [monthId]
@@ -21,13 +25,16 @@ class ExpenseRepository {
 
   async getBudgetExpensesByWeek(weekId) {
     logger.debug(`[ExpenseRepository] Buscando gastos presupuestados de la semana ID ${weekId}`);
+    await recurrenceRepository.ready;
     const [rows] = await db.query(
       `SELECT be.*, 
+              r.frequency as recurrence_frequency, 
               COALESCE(c.name, 'Sin Categorizar') as category_name, 
               COALESCE(c.color, '#FFFFFF') as category_color, 
               COALESCE(c.icon, '🏷️') as category_icon 
        FROM budget_expenses be 
        LEFT JOIN categories c ON be.category_id = c.id 
+       LEFT JOIN expense_recurrences r ON be.recurrence_id = r.id 
        WHERE be.week_id = ? 
        ORDER BY be.date ASC`,
       [weekId]

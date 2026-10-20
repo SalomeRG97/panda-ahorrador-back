@@ -1,13 +1,33 @@
 const expenseService = require('../services/expense.service');
 const logger = require('../config/logger');
+const recurrenceService = require('../services/recurrence.service');
 
 class ExpenseController {
   // GASTOS PRESUPUESTADOS
   async createBudget(req, res, next) {
     try {
       logger.info('[ExpenseController] POST /api/expenses/budget');
+      if (req.body.recurrence && req.body.recurrence.frequency) {
+        const { date, concept, budget_amount, category_id, month_id } = req.body;
+        if (!month_id || !category_id || !date || !concept || budget_amount == null) {
+          throw { statusCode: 400, message: 'Faltan campos obligatorios para el gasto presupuestado' };
+        }
+        const result = await recurrenceService.createSeries(req.user.id, req.body);
+        return res.status(201).json({ success: true, data: { id: null, ...req.body, ...result } });
+      }
       const id = await expenseService.createBudgetExpense(req.body);
       res.status(201).json({ success: true, data: { id, ...req.body } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteBudgetSeries(req, res, next) {
+    try {
+      const { id } = req.params;
+      logger.info(`[ExpenseController] DELETE /api/expenses/budget/${id}/series`);
+      await recurrenceService.deleteSeriesFromExpense(req.user.id, parseInt(id, 10));
+      res.json({ success: true, message: 'Serie eliminada desde esta fecha' });
     } catch (error) {
       next(error);
     }

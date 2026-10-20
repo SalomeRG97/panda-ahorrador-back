@@ -3,6 +3,7 @@ const monthRepository = require('../repositories/month.repository');
 const weekRepository = require('../repositories/week.repository');
 const challengeRepository = require('../repositories/challenge.repository');
 const { getMonthName, getDaysInMonth, calculateWeeksForMonth } = require('../utils/date-helpers');
+const recurrenceService = require('./recurrence.service');
 const logger = require('../config/logger');
 
 class YearService {
@@ -51,6 +52,13 @@ class YearService {
       }
 
       createdMonths.push({ id: monthId, month_number: m, month_name: monthName });
+    }
+
+    // Aplicar gastos recurrentes existentes a los meses del nuevo año
+    try {
+      await recurrenceService.materializeForYear(userId, yearId);
+    } catch (err) {
+      logger.error(`[YearService] Error generando gastos recurrentes: ${err.message}`);
     }
 
     logger.info(`[YearService] Año ${year} creado exitosamente con ${createdMonths.length} meses inicializados`);

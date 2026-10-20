@@ -7,6 +7,7 @@ const { authorize } = require('../middlewares/role.middleware');
 // Gastos presupuestados
 router.post('/budget', authenticate, authorize('admin', 'regular'), (req, res, next) => expenseController.createBudget(req, res, next));
 router.put('/budget/:id', authenticate, authorize('admin', 'regular'), (req, res, next) => expenseController.updateBudget(req, res, next));
+router.delete('/budget/:id/series', authenticate, authorize('admin', 'regular'), (req, res, next) => expenseController.deleteBudgetSeries(req, res, next));
 router.delete('/budget/:id', authenticate, authorize('admin', 'regular'), (req, res, next) => expenseController.deleteBudget(req, res, next));
 
 // Gastos extra
