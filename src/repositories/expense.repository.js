@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const logger = require('../config/logger');
 const recurrenceRepository = require('./recurrence.repository');
+const { getCurrentWeekRange } = require('../utils/date-helpers');
 
 class ExpenseRepository {
   // --- GASTOS PRESUPUESTADOS ---
@@ -149,13 +150,43 @@ class ExpenseRepository {
   async getPendingBudgetExpenses(userId) {
     logger.debug(`[ExpenseRepository] Buscando gastos presupuestados pendientes para usuario ID ${userId}`);
     await recurrenceRepository.ready;
+
+    const weekRange = getCurrentWeekRange();
+    const todayStr = weekRange.today;
+
+    // Intentamos buscar si el usuario tiene una semana configurada en BD que contenga todayStr
+    let limitEndDate = weekRange.endOfWeekSunday;
+    try {
+      const [weekRows] = await db.query(
+        `SELECT w.id, w.start_date, w.end_date
+         FROM weeks w
+         JOIN months m ON w.month_id = m.id
+         JOIN years y ON m.year_id = y.id
+         WHERE y.user_id = ?
+           AND w.start_date <= ? AND w.end_date >= ?
+         ORDER BY w.id DESC LIMIT 1`,
+        [userId, todayStr, todayStr]
+      );
+
+      if (weekRows && weekRows.length > 0 && weekRows[0].end_date) {
+        const dbEnd = String(weekRows[0].end_date).slice(0, 10);
+        if (dbEnd >= todayStr) {
+          limitEndDate = dbEnd > limitEndDate ? dbEnd : limitEndDate;
+        }
+      }
+    } catch (err) {
+      logger.warn(`[ExpenseRepository] Error consultando semana actual de BD, usando fallback: ${err.message}`);
+    }
+
+    logger.debug(`[ExpenseRepository] Límite fecha pendiente (fin de semana actual): ${limitEndDate}, Hoy: ${todayStr}`);
+
     const [rows] = await db.query(
       `SELECT be.id,
               be.month_id,
               COALESCE(be.week_id, (SELECT w2.id FROM weeks w2 WHERE w2.month_id = be.month_id AND be.date BETWEEN w2.start_date AND w2.end_date LIMIT 1)) as week_id,
               w.week_number,
               be.category_id,
-              be.date,
+              DATE_FORMAT(be.date, '%Y-%m-%d') as date,
               be.concept,
               be.budget_amount,
               be.real_amount,
@@ -168,7 +199,11 @@ class ExpenseRepository {
               y.year,
               COALESCE(c.name, 'Sin Categorizar') as category_name,
               COALESCE(c.color, '#F4A6C1') as category_color,
-              COALESCE(c.icon, '📦') as category_icon
+              COALESCE(c.icon, '📦') as category_icon,
+              CASE
+                WHEN be.date < ? THEN 'overdue'
+                ELSE 'current_week'
+              END as status_type
        FROM budget_expenses be
        JOIN months m ON be.month_id = m.id
        JOIN years y ON m.year_id = y.id
@@ -178,8 +213,9 @@ class ExpenseRepository {
        WHERE y.user_id = ?
          AND (be.real_amount IS NULL OR be.real_amount = 0)
          AND be.budget_amount > 0
+         AND be.date <= ?
        ORDER BY be.date ASC`,
-      [userId]
+      [todayStr, userId, limitEndDate]
     );
     return rows;
   }
