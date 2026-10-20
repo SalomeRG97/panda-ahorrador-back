@@ -87,6 +87,18 @@ class ExpenseController {
       next(error);
     }
   }
+
+  // GASTOS PENDIENTES
+  async getPendingBudget(req, res, next) {
+    try {
+      const userId = req.effectiveUserId || req.user.id;
+      logger.info(`[ExpenseController] GET /api/expenses/pending (userId: ${userId})`);
+      const data = await expenseService.getPendingBudgetExpenses(userId);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new ExpenseController();

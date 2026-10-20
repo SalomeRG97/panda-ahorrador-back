@@ -3,6 +3,10 @@ const router = express.Router();
 const expenseController = require('../controllers/expense.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
 const { authorize } = require('../middlewares/role.middleware');
+const { resolveOwnership } = require('../middlewares/ownership.middleware');
+
+// Gastos pendientes (notificaciones)
+router.get('/pending', authenticate, resolveOwnership, (req, res, next) => expenseController.getPendingBudget(req, res, next));
 
 // Gastos presupuestados
 router.post('/budget', authenticate, authorize('admin', 'regular'), (req, res, next) => expenseController.createBudget(req, res, next));

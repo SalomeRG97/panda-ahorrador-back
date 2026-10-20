@@ -88,6 +88,11 @@ class ExpenseService {
     const matchedWeek = await weekRepository.findWeekByDate(dateStr, monthId);
     return matchedWeek ? matchedWeek.id : null;
   }
+
+  async getPendingBudgetExpenses(userId) {
+    logger.info(`[ExpenseService] Obteniendo gastos pendientes para usuario ${userId}`);
+    return await expenseRepository.getPendingBudgetExpenses(userId);
+  }
 }
 
 module.exports = new ExpenseService();

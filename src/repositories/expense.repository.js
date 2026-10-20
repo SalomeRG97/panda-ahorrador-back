@@ -128,6 +128,45 @@ class ExpenseRepository {
     await db.query('DELETE FROM extra_expenses WHERE id = ?', [id]);
     return true;
   }
+
+  // --- GASTOS PRESUPUESTADOS PENDIENTES ---
+  async getPendingBudgetExpenses(userId) {
+    logger.debug(`[ExpenseRepository] Buscando gastos presupuestados pendientes para usuario ID ${userId}`);
+    await recurrenceRepository.ready;
+    const [rows] = await db.query(
+      `SELECT be.id,
+              be.month_id,
+              COALESCE(be.week_id, (SELECT w2.id FROM weeks w2 WHERE w2.month_id = be.month_id AND be.date BETWEEN w2.start_date AND w2.end_date LIMIT 1)) as week_id,
+              w.week_number,
+              be.category_id,
+              be.date,
+              be.concept,
+              be.budget_amount,
+              be.real_amount,
+              be.payment_method,
+              be.recurrence_id,
+              r.frequency as recurrence_frequency,
+              m.year_id,
+              m.month_number,
+              m.month_name,
+              y.year,
+              COALESCE(c.name, 'Sin Categorizar') as category_name,
+              COALESCE(c.color, '#F4A6C1') as category_color,
+              COALESCE(c.icon, '📦') as category_icon
+       FROM budget_expenses be
+       JOIN months m ON be.month_id = m.id
+       JOIN years y ON m.year_id = y.id
+       LEFT JOIN weeks w ON w.id = COALESCE(be.week_id, (SELECT w2.id FROM weeks w2 WHERE w2.month_id = be.month_id AND be.date BETWEEN w2.start_date AND w2.end_date LIMIT 1))
+       LEFT JOIN categories c ON be.category_id = c.id
+       LEFT JOIN expense_recurrences r ON be.recurrence_id = r.id
+       WHERE y.user_id = ?
+         AND (be.real_amount IS NULL OR be.real_amount = 0)
+         AND be.budget_amount > 0
+       ORDER BY be.date ASC`,
+      [userId]
+    );
+    return rows;
+  }
 }
 
 module.exports = new ExpenseRepository();
